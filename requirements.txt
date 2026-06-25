@@ -1,8 +1,10 @@
 # ============================================================
 # Vision Assistant — Python Dependencies
 # ============================================================
-# Install everything with:
-#   py -3.11 -m pip install -r requirements.txt
+# Install with:
+#   Windows  →  py -3.11 -m pip install -r requirements.txt
+#   macOS    →  python3.11 -m pip install -r requirements.txt
+#   Linux    →  python3.11 -m pip install -r requirements.txt
 #
 # NOTE: Tesseract OCR and Ollama must be installed separately.
 # See CONFIG.txt for instructions.
@@ -23,12 +25,21 @@ RealtimeSTT            # always-on wake word + Whisper STT (voice/listener.py)
 silero-vad             # voice activity detection — prevents ~45s startup delay
 
 # ── TTS ─────────────────────────────────────────────────────
-pyttsx3                # offline text-to-speech, uses Windows SAPI voices
+pyttsx3                # offline TTS — SAPI5 (Windows), nsss (macOS), espeak (Linux)
 
-# ── Windows UI automation ───────────────────────────────────
-pywinauto              # UI element detection (core/icon_finder.py)
-pywin32                # Windows COM/API access, keyboard automation, WhatsApp send
-pygetwindow            # window polling for WhatsApp send flow (actions/dispatcher.py)
+# ── Input automation ────────────────────────────────────────
+pyautogui              # cross-platform mouse/keyboard automation
 
 # ── Networking ──────────────────────────────────────────────
 requests               # HTTP calls to local Ollama API (core/ollama_client.py)
+
+# ── Windows-only (do NOT install on Linux or macOS) ─────────
+# Uncomment these only if you are on Windows:
+#
+# pywinauto              # UI element detection (core/icon_finder.py) — Windows only
+# pywin32                # Windows COM/API and win32gui for WhatsApp focus
+# pygetwindow            # WhatsApp window polling (actions/dispatcher.py) — Windows only
+#
+# Linux users: install wmctrl or xdotool instead for WhatsApp focus:
+#   sudo apt install wmctrl
+# macOS users: no extra packages needed (uses osascript)

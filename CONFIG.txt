@@ -40,6 +40,8 @@ HOW TO INSTALL DEPENDENCIES:
         Required for system packages. Install it first, then:
         brew install tesseract
         brew install brightness
+    - DO NOT install pywin32, pywinauto, or pygetwindow — these are Windows-only
+      and will cause pip errors on macOS. They are commented out in requirements.txt.
 
     1. Install Python 3.11, Ollama, and Homebrew (links above)
     2. Run brew install tesseract and brew install brightness
@@ -58,13 +60,15 @@ HOW TO INSTALL DEPENDENCIES:
         Verify with:  ollama --version
     - System packages (setup_linux.sh installs these automatically):
         sudo apt install tesseract-ocr
-        sudo apt install espeak
+        sudo apt install espeak           ← TTS backend for pyttsx3 on Linux
         sudo apt install brightnessctl
-        sudo apt install wmctrl
+        sudo apt install wmctrl           ← needed for WhatsApp window focus
     - Audio: needs PulseAudio (pactl) or PipeWire (wpctl) — usually pre-installed
     - Note: for brightness control without sudo every time:
         sudo usermod -aG video $USER
         (log out and back in after running this)
+    - DO NOT install pywin32, pywinauto, or pygetwindow — these are Windows-only
+      and will cause pip errors on Linux. They are commented out in requirements.txt.
 
    1. Install Python 3.11 and Ollama (commands above)
     2. In Terminal:
@@ -217,10 +221,9 @@ ISSUES:
   Fix:     Harmless. Ignore it.
 
  Symptom: WhatsApp send fails or times out
-  Fix (Windows): pip install pygetwindow
+  Fix (Windows): pip install pygetwindow   (then uncomment pygetwindow in requirements.txt)
   Fix (Linux):   sudo apt install wmctrl
-  Fix (Mac):     pip install pyobjc-framework-Cocoa
-                 Make sure WhatsApp desktop app is installed (not just web).
+  Fix (Mac):     no extra packages needed — uses osascript automatically
 
   Symptom: Model responses are very slow
   Fix:     You may be running on CPU. Check that your GPU drivers are up to
