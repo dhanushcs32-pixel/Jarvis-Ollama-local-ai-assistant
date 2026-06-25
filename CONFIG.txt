@@ -1,0 +1,237 @@
+ ______________-------------------------__________________-------------------__________________--------------__________________
+| Jarvis Multi Ollama Agent Project                                                                                              |
+| By Dhanush CS                                                                                                                  |
+| Made with Claude,Gemini                                                                                                        |
+| Helped by Aditya A, Kritansh C,Anush GS                                                                                        |
+| # 0b0d2119691b2f0d22132d5328187225201e2800725a1a12271133122853662033043c00224121196911230672022112240a21                       |
+| Read file till end                                                                                                             |
+|____________---------------_________________-------------__________________----------------__________________---------------__|
+----------------------------------------------------------------------------------------------------------------------------------
+  Required:
+
+  Optional but strongly recommended:
+    - A dedicated NVIDIA or AMD GPU with at least 4 GB VRAM
+    - CUDA drivers if you have an NVIDIA GPU
+        →  https://developer.nvidia.com/cuda-downloads
+----------------------------------------------------------------------------------------------------------------------------------  
+HOW TO INSTALL DEPENDENCIES:
+
+  WINDOWS:
+
+    - Windows 10 or Windows 11 (64-bit)
+    - Python 3.11  →  https://www.python.org/downloads/release/python-3119/
+        During install: check "Add Python to PATH"
+    - Ollama       →  https://ollama.com/download/windows
+        Run the installer, then verify with:  ollama --version(terminal)
+
+    1. Install Python 3.11 and Ollama (links above)
+    2. Double-click setup.bat — handles everything else
+    3. Pull your chosen models per the tables below
+    4. Run:  py -3.11 launch.py
+
+  MacOS:
+
+    - macOS 10.14+ (Mojave or newer)
+    - Python 3.11  →  https://www.python.org/downloads/macos/
+        During install: check "Add Python to PATH"
+    - Ollama       →  https://ollama.com/download/mac
+        Run the installer, then verify with:  ollama --version
+    - Homebrew     →  https://brew.sh
+        Required for system packages. Install it first, then:
+        brew install tesseract
+        brew install brightness
+
+    1. Install Python 3.11, Ollama, and Homebrew (links above)
+    2. Run brew install tesseract and brew install brightness
+    3. In Terminal:
+           chmod +x setup_mac.sh
+           ./setup_mac.sh
+    4. Pull your chosen models per the tables below
+    5. Run:  python3.11 launch.py
+
+  LINUX(Ubuntu 20.04+ or any modern distro):
+
+    - Python 3.11
+        sudo apt install python3.11 python3.11-dev
+    - Ollama
+        curl -fsSL https://ollama.com/install.sh | sh
+        Verify with:  ollama --version
+    - System packages (setup_linux.sh installs these automatically):
+        sudo apt install tesseract-ocr
+        sudo apt install espeak
+        sudo apt install brightnessctl
+        sudo apt install wmctrl
+    - Audio: needs PulseAudio (pactl) or PipeWire (wpctl) — usually pre-installed
+    - Note: for brightness control without sudo every time:
+        sudo usermod -aG video $USER
+        (log out and back in after running this)
+
+   1. Install Python 3.11 and Ollama (commands above)
+    2. In Terminal:
+           chmod +x setup_linux.sh
+           ./setup_linux.sh
+    3. Pull your chosen models per the tables below
+    4. Run:  python3.11 launch.py
+
+---------------------------------------------------------------------------------------------------------------------------------
+this uses two model slots, both configured in config.json:
+
+    "vision_model"    — handles screen analysis, and icon finding, basically anything visual
+    "reasoning_model" — handles math, code, and deep reasoning queries and normal conversations
+
+  You only need to set these two keys. Pick one model for each role from the
+  tables below based on your hardware
+
+  Ollama stores models in:
+    Windows  →  C:\Users\<YourName>\.ollama\models\
+    Mac      →  ~/.ollama/models/
+    Linux    →  ~/.ollama/models/
+
+VISION MODEL:
+  Tier        Model name              VRAM needed   Download size   
+ ───────────────────────────────────────────────
+  Minimum     moondream:1.8b          ~2 GB         ~1.6 GB         
+  Minimum     moondream2              ~2 GB         ~1.9 GB         
+  Entry GPU   llava:7b                ~6 GB VRAM    ~4.7 GB        
+  Entry GPU   bakllava                ~6 GB VRAM    ~4.1 GB        
+  Mid GPU     llava-phi3              ~5 GB VRAM    ~3.8 GB        
+  Mid GPU     llava:13b               ~10 GB VRAM   ~8.0 GB         
+  Mid GPU     qwen2.5vl:7b            ~6 GB VRAM    ~4.8 GB         
+  High GPU    llava:34b               ~22 GB VRAM   ~20 GB          
+  High GPU    qwen2.5vl:72b           ~48 GB VRAM   ~41 GB
+------------------------------------------------------------------          
+
+  RECOMMENDATION BY USE CASE:
+    - Low-end PC / no GPU         → moondream:1.8b  or  moondream2
+    - Gaming PC (RTX 3060/4060)   → llava:7b  or  qwen2.5vl:7b
+    - Workstation (RTX 3090/4080) → llava:13b  or  qwen2.5vl:7b
+    - High-end workstation        → llava:34b  or  qwen2.5vl:72b
+    - Need to read screen text    → bakllava  or  qwen2.5vl:7b  (best OCR-like reading)
+
+TEXT MODELS:
+
+  Tier        Model name              VRAM needed   Download size   Notes
+______________________________________________________________________________________________________________________
+  Minimum     qwen2.5:3b              ~3 GB         ~2.0 GB         Default. Good math/code for its size. CPU-friendly.
+  Minimum     llama3.2:3b             ~3 GB         ~2.0 GB         Good general reasoning alternative at 3B.
+  Entry GPU   qwen2.5:7b              ~5 GB VRAM    ~4.7 GB         
+  Entry GPU   mistral:7b              ~5 GB VRAM    ~4.1 GB         
+  Entry GPU   llama3.1:8b             ~6 GB VRAM    ~4.9 GB         
+  Mid GPU     qwen2.5:14b             ~10 GB VRAM   ~8.9 GB         Near-GPT-4o-mini quality. Excellent math and coding.
+  Mid GPU     deepseek-r1:8b          ~6 GB VRAM    ~4.9 GB         
+  High GPU    qwen2.5:32b             ~22 GB VRAM   ~19 GB       
+  High GPU    deepseek-r1:32b         ~22 GB VRAM   ~19 GB
+------------------------------------------------------------------------------------------------------------------------          
+
+  RECOMMENDATION BY USE CASE:
+    - Low-end PC / no GPU         → qwen2.5:3b  or  llama3.2:3b
+    - Gaming PC (RTX 3060/4060)   → qwen2.5:7b  or  llama3.1:8b
+    - Workstation (RTX 3090/4080) → qwen2.5:14b  or  deepseek-r1:8b
+    - High-end workstation        → qwen2.5:32b  or  deepseek-r1:32b
+    - Need strong math/science    → deepseek-r1 at whatever size fits your VRAM
+-----------------------------------------------------------------------------------------------------------------
+   
+  No GPU / CPU only
+    vision_model:    moondream:1.8b
+    reasoning_model: qwen2.5:3b
+
+  Entry GPU (4–6 GB VRAM — RTX 3060, RX 6600, etc.)
+    vision_model:    llava:7b
+    reasoning_model: qwen2.5:7b
+
+  Mid GPU (8–12 GB VRAM — RTX 3070/3080, RX 6700 XT, etc.)
+    vision_model:    qwen2.5vl:7b
+    reasoning_model: qwen2.5:14b
+
+  High-end GPU (20–24 GB VRAM — RTX 3090, RTX 4090, etc.)
+    vision_model:    llava:34b
+    reasoning_model: deepseek-r1:32b
+
+  Single-model (vision + reasoning in one — mid GPU)
+    vision_model:    qwen2.5vl:7b
+    reasoning_model: qwen2.5vl:7b
+------------------------------------------------------------------------------------------------------------------------
+HOW TO DOWNLOAD MODELS:
+
+  Make sure Ollama is running (it starts automatically on Windows after install).
+  Then open a Command Prompt and pull your chosen models:
+
+  Examples:
+
+    ollama pull moondream:1.8b        
+    ollama pull qwen2.5:3b                       
+    ollama pull qwen2.5:7b          
+ 
+  To see all models you have installed:
+    ollama list
+
+  To remove a model you no longer want:
+    ollama rm <model-name>
+
+  Large models can be 5–40 GB each — make sure you have the disk space.
+
+----------------------------------------------------------------------------------------
+HOW TO TELL PROGRAM WHAT AGENTS YOUVE INSTALLED:
+  Open config.json in any text editor and set your model names:
+
+    {
+      "vision_model":    "moondream:1.8b",   ← change to your chosen vision model
+      "reasoning_model": "qwen2.5:3b",       ← change to your chosen reasoning model
+      ...
+    }
+
+  *****The model name must exactly match the tag shown by  ollama list.*****
+-------------------------------------------------------------------------------------------------
+  Other settings you may want to review(optional):
+    "wake_word"        — "Jarvis"/"Jarv" by default
+    "allowed_actions"  — list of actions the assistant is permitted to take
+    "tts_enabled"      — true/false to toggle spoken responses
+-------------------------------------------------------------------------------------------------
+  widget launcher:
+    py -3.11 jarvis_launcher.py
+    (Click the arc reactor HUD to start the assistant)
+-------------------------------------------------------------------------------------------------
+TO MAKE IT STARTUP EVERYTIME YOUR SYSTEM STARTS UP:
+
+  Add to Windows Startup (run once, no admin needed):
+    py -3.11 add_to_startup.py
+-------------------------------------------------------------------------------------------------
+
+  Hotkeys once running:
+    F8   →  Push-to-talk(you can talk without f8 too)
+    F9   →  Analyze current screen
+    F10  →  Open text input bar
+    Say "Jarvis" or "Jarv" to wake the assistant hands-free.
+----------------------------------------------------------------------------------------------------
+ISSUES:
+  Symptom: ~45-second delay on startup, Silero ONNX warning in logs
+  Fix:     pip install silero-vad.
+
+  Symptom: "tesseract is not installed or not in PATH"
+  Fix:     Complete Section 2 and restart your terminal.
+
+  Symptom: float16 warning on startup
+  Fix:     Harmless. CT2 auto-converts to float32. Ignore it.
+
+  Symptom: DPI awareness warning on startup
+  Fix:     Harmless. Ignore it.
+
+ Symptom: WhatsApp send fails or times out
+  Fix (Windows): pip install pygetwindow
+  Fix (Linux):   sudo apt install wmctrl
+  Fix (Mac):     pip install pyobjc-framework-Cocoa
+                 Make sure WhatsApp desktop app is installed (not just web).
+
+  Symptom: Model responses are very slow
+  Fix:     You may be running on CPU. Check that your GPU drivers are up to
+           date, and consider switching to a smaller model.
+
+  Symptom: "model not found" error when starting
+  Fix:     Run  ollama list  and confirm the model name matches exactly what
+           is set in config.json, including the tag (e.g. qwen2.5:7b not qwen2.5).
+____________-------------________________--------------_______________-------------_____
+JaRvIs                                                                                  |
+___________------------___________----------______________----------_______________-----|
+  
+
+

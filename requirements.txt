@@ -1,0 +1,34 @@
+# ============================================================
+# Vision Assistant — Python Dependencies
+# ============================================================
+# Install everything with:
+#   py -3.11 -m pip install -r requirements.txt
+#
+# NOTE: Tesseract OCR and Ollama must be installed separately.
+# See CONFIG.txt for instructions.
+# ============================================================
+
+# ── GUI ─────────────────────────────────────────────────────
+PyQt6                  # floating window, eye widget, overlay, text input bar
+
+# ── Screen capture ──────────────────────────────────────────
+mss                    # fast screen capture (core/capture.py)
+Pillow                 # image processing, required by pytesseract
+
+# ── OCR ─────────────────────────────────────────────────────
+pytesseract            # Python wrapper for Tesseract OCR (core/icon_finder.py)
+
+# ── Voice / STT ─────────────────────────────────────────────
+RealtimeSTT            # always-on wake word + Whisper STT (voice/listener.py)
+silero-vad             # voice activity detection — prevents ~45s startup delay
+
+# ── TTS ─────────────────────────────────────────────────────
+pyttsx3                # offline text-to-speech, uses Windows SAPI voices
+
+# ── Windows UI automation ───────────────────────────────────
+pywinauto              # UI element detection (core/icon_finder.py)
+pywin32                # Windows COM/API access, keyboard automation, WhatsApp send
+pygetwindow            # window polling for WhatsApp send flow (actions/dispatcher.py)
+
+# ── Networking ──────────────────────────────────────────────
+requests               # HTTP calls to local Ollama API (core/ollama_client.py)

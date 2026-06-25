@@ -1,0 +1,38 @@
+{
+  "_comment": "Copy this file to config.json and fill in your settings. See CONFIG.txt for full instructions.",
+
+  "vision_model":    "moondream:1.8b",
+  "reasoning_model": "qwen2.5:3b",
+  "model":           "moondream:1.8b",
+
+  "wake_word": "Jarvis",
+
+  "hotkeys": {
+    "push_to_talk":   "F8",
+    "screen_analyze": "F9",
+    "text_input":     "F10"
+  },
+
+  "tts_enabled": true,
+
+  "allowed_actions": [
+    "speak",
+    "type_text",
+    "open_app",
+    "volume_up",
+    "volume_down",
+    "volume_mute",
+    "screen_analyze",
+    "open_whatsapp",
+    "send_whatsapp_message",
+    "todo_add",
+    "todo_list",
+    "todo_done"
+  ],
+
+  "stt": {
+    "model":               "base",
+    "silero_sensitivity":  0.3,
+    "min_length_of_recording": 0.6
+  }
+}

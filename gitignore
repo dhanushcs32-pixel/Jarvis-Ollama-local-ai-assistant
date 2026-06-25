@@ -1,0 +1,39 @@
+# ============================================================
+# Vision Assistant — .gitignore
+# ============================================================
+
+# ── User config (copy config.example.json → config.json) ──
+config.json
+
+# ── Runtime state & memory ─────────────────────────────────
+memory.json
+
+# ── Logs ───────────────────────────────────────────────────
+*.log
+realtimesst.log
+
+# ── Debug output folder ────────────────────────────────────
+debug_output/
+
+# ── Python cache ───────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ── Virtual environments ───────────────────────────────────
+venv/
+.venv/
+env/
+
+# ── OS / editor junk ───────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ── Leftover zip extraction folders ────────────────────────
+
