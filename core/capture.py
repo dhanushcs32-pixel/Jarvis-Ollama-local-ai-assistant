@@ -4,11 +4,18 @@ configured resolution, and returns a JPEG base64 string.
 
 NOTE: mss instances are NOT thread-safe. We create a new mss context
 on every grab() call so it works safely from any thread (voice or hotkey).
+
+Platform support for get_active_window_title():
+  - Windows : pygetwindow
+  - macOS   : AppKit (NSWorkspace)
+  - Linux   : xdotool via subprocess (X11/XWayland)
 """
 
 import base64
 import io
 import logging
+import subprocess
+import sys
 from typing import Optional
 
 import mss
@@ -17,11 +24,79 @@ from PIL import Image
 
 log = logging.getLogger(__name__)
 
+# ── Windows ──────────────────────────────────────────────────────────────────
 try:
     import pygetwindow as gw
     _HAS_GW = True
 except ImportError:
     _HAS_GW = False
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+try:
+    if sys.platform == "darwin":
+        from AppKit import NSWorkspace  # type: ignore
+        _HAS_APPKIT = True
+    else:
+        _HAS_APPKIT = False
+except ImportError:
+    _HAS_APPKIT = False
+
+
+def _get_title_windows() -> Optional[str]:
+    """Active window title on Windows via pygetwindow."""
+    if not _HAS_GW:
+        return None
+    try:
+        w = gw.getActiveWindow()
+        return w.title if w else None
+    except Exception:
+        return None
+
+
+def _get_title_macos() -> Optional[str]:
+    """Active window title on macOS via AppKit."""
+    if not _HAS_APPKIT:
+        return None
+    try:
+        active_app = NSWorkspace.sharedWorkspace().activeApplication()
+        return active_app.get("NSApplicationName")
+    except Exception:
+        return None
+
+
+def _get_title_linux() -> Optional[str]:
+    """Active window title on Linux via xdotool (X11 / XWayland).
+
+    Requires xdotool to be installed:
+        sudo apt install xdotool   # Debian/Ubuntu
+        sudo dnf install xdotool   # Fedora
+    Returns None if xdotool is missing or the call fails.
+    """
+    try:
+        win_id = subprocess.check_output(
+            ["xdotool", "getactivewindow"],
+            stderr=subprocess.DEVNULL,
+            timeout=1,
+        ).strip()
+        title = subprocess.check_output(
+            ["xdotool", "getwindowname", win_id],
+            stderr=subprocess.DEVNULL,
+            timeout=1,
+        )
+        return title.decode().strip() or None
+    except (FileNotFoundError, subprocess.CalledProcessError,
+            subprocess.TimeoutExpired, ValueError):
+        return None
+
+
+# Pick the right implementation once at import time
+if sys.platform == "win32":
+    _get_active_title = _get_title_windows
+elif sys.platform == "darwin":
+    _get_active_title = _get_title_macos
+else:
+    # Linux and any other POSIX platform
+    _get_active_title = _get_title_linux
 
 
 class ScreenCapture:
@@ -58,15 +133,9 @@ class ScreenCapture:
         img.save(buf, format="JPEG", quality=self.cfg.capture_quality, optimize=True)
         b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
 
-        # [FIXED - LOW] was f-string; replaced with % formatting
         log.debug("Screenshot: %s, JPEG=%dKB (b64)", img.size, len(b64) // 1024)
         return b64
 
     def get_active_window_title(self) -> Optional[str]:
-        if not _HAS_GW:
-            return None
-        try:
-            w = gw.getActiveWindow()
-            return w.title if w else None
-        except Exception:
-            return None
+        """Return the title of the currently focused window, or None if unavailable."""
+        return _get_active_title()

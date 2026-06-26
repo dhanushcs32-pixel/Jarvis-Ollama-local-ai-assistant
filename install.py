@@ -333,6 +333,8 @@ def install_system_packages() -> bool:
             needed.append("brightnessctl")
         if not shutil.which("wmctrl"):
             needed.append("wmctrl")
+        if not shutil.which("xdotool"):
+            needed.append("xdotool")
         if not needed:
             ok("All system packages already installed.")
             return True
