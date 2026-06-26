@@ -12,10 +12,13 @@ Supported actions:
 """
 
 import logging
+import os
 import re
+import sys
 import time
 import subprocess
 import threading
+import webbrowser
 from pathlib import Path
 
 import pyautogui
@@ -28,11 +31,27 @@ pyautogui.PAUSE    = 0.05
 # Must match agent._get_secure_todo_path()
 TODO_FILE = Path.home() / "Desktop" / "To-Do.txt"
 
-# Maximum characters a TTS utterance is allowed to reach PowerShell with.
+# Maximum characters a TTS utterance is allowed to reach the TTS engine with.
 _TTS_HARD_CAP = 200
 
 # Maximum time (seconds) to wait for WhatsApp window to appear.
 _WA_WINDOW_TIMEOUT = 15
+
+_IS_WIN   = sys.platform == "win32"
+_IS_MAC   = sys.platform == "darwin"
+_IS_LINUX = sys.platform.startswith("linux")
+
+# Linux binary names rarely match friendly names — use a lookup dict.
+_APP_MAP_LINUX = {
+    "chrome":       "google-chrome-stable",
+    "google chrome":"google-chrome-stable",
+    "firefox":      "firefox",
+    "vscode":       "code",
+    "vs code":      "code",
+    "terminal":     "gnome-terminal",
+    "files":        "nautilus",
+    "calculator":   "gnome-calculator",
+}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -46,31 +65,84 @@ def _set_speaking(active: bool) -> None:
         pass   # listener not running (e.g. text-only mode) — safe to ignore
 
 
-def _vol_script(action: str, amount: int = 1) -> str:
-    """Return a PowerShell one-liner that adjusts volume via WScript.Shell."""
+def _whatsapp_exe_path() -> str | None:
+    """Return the WhatsApp classic-install .exe path if it exists (Windows only)."""
+    if not _IS_WIN:
+        return None
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    if not local_app_data:
+        return None
+    candidate = Path(local_app_data) / "WhatsApp" / "WhatsApp.exe"
+    return str(candidate) if candidate.exists() else None
+
+
+# ── Volume helpers (per-platform) ─────────────────────────────────────────
+
+def _volume_change_windows(action: str, amount: int = 1) -> None:
+    """Adjust volume on Windows via PowerShell WScript.Shell."""
     keys = {
-        "up":   "[char]175",   # VK_VOLUME_UP
-        "down": "[char]174",   # VK_VOLUME_DOWN
-        "mute": "[char]173",   # VK_VOLUME_MUTE
+        "up":   "[char]175",
+        "down": "[char]174",
+        "mute": "[char]173",
     }
     k = keys.get(action, "")
     if not k:
-        return ""
+        return
     if action == "mute" or amount <= 1:
-        return f"(New-Object -ComObject WScript.Shell).SendKeys({k})"
-    # Batch N keypresses in a single PowerShell process (faster than N subprocesses).
-    return (
-        f"$sh = New-Object -ComObject WScript.Shell; "
-        f"1..{amount} | ForEach-Object {{ $sh.SendKeys({k}) }}"
-    )
+        script = f"(New-Object -ComObject WScript.Shell).SendKeys({k})"
+    else:
+        script = (
+            f"$sh = New-Object -ComObject WScript.Shell; "
+            f"1..{amount} | ForEach-Object {{ $sh.SendKeys({k}) }}"
+        )
+    subprocess.run(["powershell", "-Command", script],
+                   capture_output=True, timeout=5)
 
 
-def _whatsapp_exe_path() -> str | None:
-    """Return the WhatsApp classic-install .exe path if it exists, else None."""
-    import os
-    username = os.environ.get("USERNAME", "")
-    candidate = rf"C:\Users\{username}\AppData\Local\WhatsApp\WhatsApp.exe"
-    return candidate if Path(candidate).exists() else None
+def _volume_change_mac(action: str, amount: int = 1) -> None:
+    """Adjust volume on macOS via osascript."""
+    if action == "mute":
+        subprocess.run(["osascript", "-e", "set volume output muted true"],
+                       capture_output=True, timeout=5)
+    elif action == "up":
+        subprocess.run(
+            ["osascript", "-e",
+             f"set volume output volume (output volume of (get volume settings) + {amount * 10})"],
+            capture_output=True, timeout=5,
+        )
+    elif action == "down":
+        subprocess.run(
+            ["osascript", "-e",
+             f"set volume output volume (output volume of (get volume settings) - {amount * 10})"],
+            capture_output=True, timeout=5,
+        )
+
+
+def _volume_change_linux(action: str, amount: int = 1) -> None:
+    """Adjust volume on Linux via pactl (PulseAudio/PipeWire)."""
+    if action == "mute":
+        subprocess.run(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"],
+                       capture_output=True, timeout=5)
+    elif action == "up":
+        subprocess.run(
+            ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"+{amount * 10}%"],
+            capture_output=True, timeout=5,
+        )
+    elif action == "down":
+        subprocess.run(
+            ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"-{amount * 10}%"],
+            capture_output=True, timeout=5,
+        )
+
+
+def _volume_change(action: str, amount: int = 1) -> None:
+    """Dispatch volume change to the correct platform handler."""
+    if _IS_WIN:
+        _volume_change_windows(action, amount)
+    elif _IS_MAC:
+        _volume_change_mac(action, amount)
+    else:
+        _volume_change_linux(action, amount)
 
 
 # ── Dispatcher ────────────────────────────────────────────────────────────
@@ -147,28 +219,70 @@ class ActionDispatcher:
             return {"ok": False, "action": "open_app", "error": "missing 'name' field"}
         if "whatsapp" in name.lower():
             return self._do_open_whatsapp(a)
-        pyautogui.hotkey("win", "s")
-        time.sleep(0.4)
-        pyautogui.write(name, interval=0.05)
-        time.sleep(0.6)
-        pyautogui.press("enter")
+
+        if _IS_WIN:
+            # Windows Search
+            pyautogui.hotkey("win", "s")
+            time.sleep(0.4)
+            pyautogui.write(name, interval=0.05)
+            time.sleep(0.6)
+            pyautogui.press("enter")
+        elif _IS_MAC:
+            # Spotlight
+            pyautogui.hotkey("command", "space")
+            time.sleep(0.4)
+            pyautogui.write(name, interval=0.05)
+            time.sleep(0.6)
+            pyautogui.press("enter")
+        else:
+            # Linux: try binary lookup, then xdg-open, then desktop search (Super key)
+            binary = _APP_MAP_LINUX.get(name.lower(), name.lower().replace(" ", "-"))
+            try:
+                subprocess.Popen([binary])
+            except FileNotFoundError:
+                log.warning("open_app: binary %r not found — trying Super key search", binary)
+                pyautogui.press("super")
+                time.sleep(0.5)
+                pyautogui.write(name, interval=0.05)
+                time.sleep(0.6)
+                pyautogui.press("enter")
+
         log.info("open_app: %s", name)
         return {"ok": True, "action": "open_app", "name": name}
 
     def _do_open_whatsapp(self, a: dict | None = None) -> dict:
-        """Launch WhatsApp desktop app (Windows Store or classic install)."""
-        path = _whatsapp_exe_path()
-        if path:
-            subprocess.Popen([path])
-            log.info("open_whatsapp: launched via %s", path)
+        """Launch WhatsApp desktop app (cross-platform)."""
+        if _IS_WIN:
+            path = _whatsapp_exe_path()
+            if path:
+                subprocess.Popen([path])
+                log.info("open_whatsapp: launched via %s", path)
+            else:
+                pyautogui.hotkey("win", "s")
+                time.sleep(0.4)
+                pyautogui.write("WhatsApp", interval=0.05)
+                time.sleep(0.8)
+                pyautogui.press("enter")
+                log.info("open_whatsapp: launched via Windows Search fallback")
+        elif _IS_MAC:
+            subprocess.Popen(["open", "-a", "WhatsApp"])
+            log.info("open_whatsapp: launched via open -a WhatsApp")
         else:
-            # Fallback: Windows Search (covers Store and side-loaded installs).
-            pyautogui.hotkey("win", "s")
-            time.sleep(0.4)
-            pyautogui.write("WhatsApp", interval=0.05)
-            time.sleep(0.8)
-            pyautogui.press("enter")
-            log.info("open_whatsapp: launched via Windows Search fallback")
+            # Linux: try native binary, then flatpak, then snap
+            for cmd in (
+                ["whatsapp-desktop"],
+                ["flatpak", "run", "io.github.mimbrero.WhatsAppDesktop"],
+                ["snap", "run", "whatsapp-linux-wrapper"],
+            ):
+                try:
+                    subprocess.Popen(cmd)
+                    log.info("open_whatsapp: launched via %s", cmd[0])
+                    break
+                except FileNotFoundError:
+                    continue
+            else:
+                log.warning("open_whatsapp: no WhatsApp binary found on Linux")
+
         self.speak("Opening WhatsApp.")
         return {"ok": True, "action": "open_app", "name": "WhatsApp"}
 
@@ -177,11 +291,29 @@ class ActionDispatcher:
         if not query:
             log.warning("search_file called with no 'query' field")
             return
-        pyautogui.hotkey("win", "e")
-        time.sleep(0.5)
-        pyautogui.hotkey("ctrl", "f")
-        time.sleep(0.2)
-        pyautogui.write(query, interval=0.05)
+
+        if _IS_WIN:
+            pyautogui.hotkey("win", "e")
+            time.sleep(0.5)
+            pyautogui.hotkey("ctrl", "f")
+            time.sleep(0.2)
+            pyautogui.write(query, interval=0.05)
+        elif _IS_MAC:
+            # Open Finder search via Spotlight
+            pyautogui.hotkey("command", "space")
+            time.sleep(0.4)
+            pyautogui.write(query, interval=0.05)
+            time.sleep(0.4)
+            pyautogui.press("enter")
+        else:
+            # Linux: use xdg-open to open home folder, then fall back to Super search
+            try:
+                subprocess.Popen(["nautilus", "--select", str(Path.home())])
+            except FileNotFoundError:
+                pass
+            pyautogui.press("super")
+            time.sleep(0.5)
+            pyautogui.write(query, interval=0.05)
 
     def _do_speak(self, a: dict) -> None:
         self._tts.say(a.get("text", ""))
@@ -193,29 +325,18 @@ class ActionDispatcher:
 
     def _do_volume_up(self, a: dict) -> None:
         amount = max(1, int(a.get("amount", 5)))
-        script = _vol_script("up", amount)
-        subprocess.run(
-            ["powershell", "-Command", script],
-            capture_output=True, timeout=5,
-        )
+        _volume_change("up", amount)
         log.info("volume up x%d", amount)
         self.speak("Volume increased.")
 
     def _do_volume_down(self, a: dict) -> None:
         amount = max(1, int(a.get("amount", 5)))
-        script = _vol_script("down", amount)
-        subprocess.run(
-            ["powershell", "-Command", script],
-            capture_output=True, timeout=5,
-        )
+        _volume_change("down", amount)
         log.info("volume down x%d", amount)
         self.speak("Volume decreased.")
 
     def _do_volume_mute(self, a: dict) -> None:
-        subprocess.run(
-            ["powershell", "-Command", _vol_script("mute")],
-            capture_output=True, timeout=3,
-        )
+        _volume_change("mute")
         log.info("volume muted/unmuted")
         self.speak("Volume toggled.")
 
@@ -339,10 +460,11 @@ class ActionDispatcher:
         if not re.match(r"^https?://[^\s]+$", url, re.IGNORECASE):
             log.warning("open_url: rejected malformed URL %r", url)
             return {"ok": False, "action": "open_url", "error": "malformed URL"}
-        # No shell=True — pass as a list so the URL can't escape into a shell command.
-        subprocess.Popen(["cmd", "/c", "start", "", "chrome", url])
+        # webbrowser.open respects the user's default browser on all platforms.
+        # No shell=True, no hard-coded browser binary.
+        webbrowser.open(url)
         log.info("open_url: %s", url)
-        self.speak(f"Opening {url} in Chrome.")
+        self.speak(f"Opening {url}.")
         return {"ok": True, "action": "open_url", "url": url}
 
     # ── WhatsApp send (desktop app, with confirmation) ────────────────────
@@ -378,18 +500,37 @@ class ActionDispatcher:
         Launch the WhatsApp desktop app and wait until its window is visible.
         Returns True if the window appeared within the timeout, False otherwise.
         """
-        path = _whatsapp_exe_path()
-        if path:
-            subprocess.Popen([path])
-            log.info("whatsapp: launched via %s", path)
+        if _IS_WIN:
+            path = _whatsapp_exe_path()
+            if path:
+                subprocess.Popen([path])
+                log.info("whatsapp: launched via %s", path)
+            else:
+                pyautogui.hotkey("win", "s")
+                time.sleep(0.5)
+                pyautogui.write("WhatsApp", interval=0.05)
+                time.sleep(0.8)
+                pyautogui.press("enter")
+                log.info("whatsapp: launched via Windows Search fallback")
+        elif _IS_MAC:
+            subprocess.Popen(["open", "-a", "WhatsApp"])
+            log.info("whatsapp: launched via open -a WhatsApp")
         else:
-            pyautogui.hotkey("win", "s")
-            time.sleep(0.5)
-            pyautogui.write("WhatsApp", interval=0.05)
-            time.sleep(0.8)
-            pyautogui.press("enter")
-            log.info("whatsapp: launched via Windows Search fallback")
+            for cmd in (
+                ["whatsapp-desktop"],
+                ["flatpak", "run", "io.github.mimbrero.WhatsAppDesktop"],
+                ["snap", "run", "whatsapp-linux-wrapper"],
+            ):
+                try:
+                    subprocess.Popen(cmd)
+                    log.info("whatsapp: launched via %s", cmd[0])
+                    break
+                except FileNotFoundError:
+                    continue
+            else:
+                log.warning("whatsapp: no WhatsApp binary found on Linux")
 
+        # Wait for the WhatsApp window to appear.
         try:
             import pygetwindow as gw
             deadline = time.monotonic() + _WA_WINDOW_TIMEOUT
@@ -397,24 +538,23 @@ class ActionDispatcher:
                 wins = gw.getWindowsWithTitle("WhatsApp")
                 if wins:
                     win = wins[0]
-                    # activate() raises on success on some Windows versions
-                    # (error code 0 = "operation completed successfully").
-                    # Try three progressively heavier focus methods.
                     try:
                         win.activate()
                     except Exception:
-                        try:
-                            import win32gui
-                            win32gui.SetForegroundWindow(win._hWnd)
-                        except Exception:
+                        if _IS_WIN:
                             try:
-                                win.minimize()
-                                time.sleep(0.15)
-                                win.restore()
+                                import win32gui
+                                win32gui.SetForegroundWindow(win._hWnd)
                             except Exception:
                                 pass
+                        try:
+                            win.minimize()
+                            time.sleep(0.15)
+                            win.restore()
+                        except Exception:
+                            pass
                     log.info("whatsapp: window found and focused")
-                    time.sleep(0.8)   # let UI fully paint before automation
+                    time.sleep(0.8)
                     return True
                 time.sleep(0.5)
             log.warning("whatsapp: window did not appear within %ds", _WA_WINDOW_TIMEOUT)
@@ -453,9 +593,9 @@ class ActionDispatcher:
         pyautogui.hotkey("ctrl", "f")
         time.sleep(0.6)
         pyautogui.write(contact, interval=0.06)
-        time.sleep(1.2)         # wait for search results to populate
+        time.sleep(1.2)
         pyautogui.press("enter")
-        time.sleep(0.8)         # wait for chat to open
+        time.sleep(0.8)
         log.info("whatsapp: opened chat with %r", contact)
 
         pyautogui.write(msg, interval=0.04)
@@ -478,6 +618,34 @@ class _TTSEngine:
         self.volume = int(cfg.tts_volume * 100)
         self._lock  = threading.Lock()
         self._proc: subprocess.Popen | None = None
+        self._pyttsx3_engine = None   # lazy-init for macOS/Linux
+
+    def _say_windows(self, safe: str) -> subprocess.Popen:
+        script = (
+            "Add-Type -AssemblyName System.Speech; "
+            "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+            f"$s.Rate = 2; $s.Volume = {self.volume}; "
+            f"$s.Speak('{safe}')"
+        )
+        return subprocess.Popen(
+            ["powershell", "-Command", script],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    def _say_pyttsx3(self, text: str) -> None:
+        """Speak via pyttsx3 (macOS / Linux). Runs synchronously inside the thread."""
+        try:
+            import pyttsx3
+            # Re-use engine across calls (init is expensive), but pyttsx3
+            # is not thread-safe so we create it inside the lock-protected thread.
+            engine = pyttsx3.init()
+            engine.setProperty("rate", 175)
+            engine.setProperty("volume", self.volume / 100.0)
+            engine.say(text)
+            engine.runAndWait()
+        except Exception:
+            log.exception("pyttsx3 TTS error")
 
     def say(self, text: str) -> None:
         if not text:
@@ -491,16 +659,8 @@ class _TTSEngine:
         if not short:
             return
 
-        # Sanitise for PowerShell single-quote string — only strip characters
-        # that would break the PowerShell literal; keep all others as-is.
+        # Sanitise — strip characters that would break shell/TTS literals.
         safe = short.replace("'", " ").replace('"', " ").replace("`", " ")
-
-        script = (
-            "Add-Type -AssemblyName System.Speech; "
-            "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-            f"$s.Rate = 2; $s.Volume = {self.volume}; "
-            f"$s.Speak('{safe}')"
-        )
 
         _set_speaking(True)   # mute mic BEFORE thread starts — no race window
 
@@ -508,19 +668,18 @@ class _TTSEngine:
             proc = None
             try:
                 with self._lock:
-                    # Kill any still-running previous utterance.
+                    # Kill any still-running previous utterance (Windows only).
                     if self._proc and self._proc.poll() is None:
                         self._proc.kill()
                         self._proc.wait()
 
-                proc = subprocess.Popen(
-                    ["powershell", "-Command", script],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                with self._lock:
-                    self._proc = proc
-                proc.wait(timeout=30)
+                if _IS_WIN:
+                    proc = self._say_windows(safe)
+                    with self._lock:
+                        self._proc = proc
+                    proc.wait(timeout=30)
+                else:
+                    self._say_pyttsx3(safe)
             except subprocess.TimeoutExpired:
                 if proc:
                     proc.kill()

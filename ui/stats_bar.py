@@ -63,7 +63,7 @@ class StatsBar(QWidget):
         style = (
             "color: rgba(255,255,255,200);"
             "font-size: 12px;"
-            "font-family: 'SF Mono', 'Consolas', monospace;"
+            "font-family: 'SF Mono', 'Menlo', 'Consolas', 'DejaVu Sans Mono', monospace;"
             "background: transparent;"
             "padding: 0 10px;"
         )

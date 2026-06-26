@@ -4,10 +4,13 @@ IconFinder v5 — splits lookup by query type, vision as last resort.
 Strategy order:
   1. Icon mode  — query matches a known app/icon name (APP_ALIASES) → pywinauto
                   Shell API desktop icon lookup. Instant, exact names, no OCR.
+                  Windows only; gracefully skipped on macOS/Linux (_has_pywinauto=False).
   2. Word mode  — anything else (arbitrary word/phrase) → tiled multi-pass OCR
                   + NMS across the full screen. Slower but reads any text.
+                  Works on all platforms (pytesseract + opencv-python).
   3. Vision     — fallback only when both above find nothing (unlabelled icons,
                   appearance-based queries like "the red button").
+                  Works on all platforms (requests to Ollama).
 """
 
 import logging
@@ -22,10 +25,24 @@ from PIL import Image
 
 log = logging.getLogger(__name__)
 
-TESSERACT_PATHS = [
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-]
+import sys as _sys
+
+# Tesseract executable paths, checked in order.
+# pytesseract auto-finds tesseract on PATH (macOS/Linux homebrew/apt installs),
+# so these are only needed for Windows where Tesseract is not on PATH by default.
+TESSERACT_PATHS = []
+if _sys.platform == "win32":
+    TESSERACT_PATHS = [
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    ]
+elif _sys.platform == "darwin":
+    # Homebrew installs to /opt/homebrew (Apple Silicon) or /usr/local (Intel)
+    TESSERACT_PATHS = [
+        "/opt/homebrew/bin/tesseract",
+        "/usr/local/bin/tesseract",
+    ]
+# Linux: tesseract is always on PATH via apt/dnf — no explicit path needed.
 
 APP_ALIASES = {
     "firefox":       ["firefox", "mozilla"],
@@ -79,6 +96,9 @@ class IconFinder:
         self._setup_pywinauto()
 
     def _setup_pywinauto(self):
+        # pywinauto is Windows-only. On macOS/Linux it won't be installed,
+        # so _has_pywinauto=False and icon mode is silently skipped; OCR
+        # and vision fallback still work normally on those platforms.
         try:
             from pywinauto import Desktop
             self._Desktop = Desktop

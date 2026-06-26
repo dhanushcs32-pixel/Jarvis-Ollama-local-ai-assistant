@@ -1,11 +1,11 @@
- ______________-------------------------__________________-------------------__________________--------------__________________
+ ______________-------------------------__________________-------------------__________________--------------____________________
 | Jarvis Multi Ollama Agent Project                                                                                              |
 | By Dhanush CS                                                                                                                  |
 | Made with Claude,Gemini                                                                                                        |
 | Helped by Aditya A, Kritansh C,Anush GS                                                                                        |
 | # 0b0d2119691b2f0d22132d5328187225201e2800725a1a12271133122853662033043c00224121196911230672022112240a21                       |
 | Read file till end                                                                                                             |
-|____________---------------_________________-------------__________________----------------__________________---------------__|
+|____________---------------_________________-------------__________________----------------__________________---------------____|
 ----------------------------------------------------------------------------------------------------------------------------------
   Required:
 
@@ -15,6 +15,24 @@
         →  https://developer.nvidia.com/cuda-downloads
 ----------------------------------------------------------------------------------------------------------------------------------  
 HOW TO INSTALL DEPENDENCIES:
+just run the install.py on your terminal/cmd
+
+WINDOWS:
+
+cd path\to\your\project
+py -3.11 install.py
+
+LINUX:
+
+cd "/path/to/your/project"
+python3.11 install.py
+
+MacOS:
+
+cd "/path/to/your/project"
+python3.11 install.py
+-------------------------------------------------------------------------------------------------------------
+Or if you want to manual install:
 
   WINDOWS:
 
@@ -25,8 +43,9 @@ HOW TO INSTALL DEPENDENCIES:
         Run the installer, then verify with:  ollama --version(terminal)
 
     1. Install Python 3.11 and Ollama (links above)
-    2. Double-click setup.bat — handles everything else
-    3. Pull your chosen models per the tables below
+    2. Open a terminal in the project folder and run:
+           py -3.11 install.py
+    3. The installer handles packages, models, and config automatically.
     4. Run:  py -3.11 launch.py
 
   MacOS:
@@ -45,10 +64,9 @@ HOW TO INSTALL DEPENDENCIES:
 
     1. Install Python 3.11, Ollama, and Homebrew (links above)
     2. Run brew install tesseract and brew install brightness
-    3. In Terminal:
-           chmod +x setup_mac.sh
-           ./setup_mac.sh
-    4. Pull your chosen models per the tables below
+    3. Open a terminal in the project folder and run:
+           python3.11 install.py
+    4. The installer handles packages, models, and config automatically.
     5. Run:  python3.11 launch.py
 
   LINUX(Ubuntu 20.04+ or any modern distro):
@@ -70,11 +88,10 @@ HOW TO INSTALL DEPENDENCIES:
     - DO NOT install pywin32, pywinauto, or pygetwindow — these are Windows-only
       and will cause pip errors on Linux. They are commented out in requirements.txt.
 
-   1. Install Python 3.11 and Ollama (commands above)
-    2. In Terminal:
-           chmod +x setup_linux.sh
-           ./setup_linux.sh
-    3. Pull your chosen models per the tables below
+    1. Install Python 3.11 and Ollama (commands above)
+    2. Open a terminal in the project folder and run:
+           python3.11 install.py
+    3. The installer handles packages, models, and config automatically.
     4. Run:  python3.11 launch.py
 
 ---------------------------------------------------------------------------------------------------------------------------------
@@ -209,7 +226,8 @@ TO MAKE IT STARTUP EVERYTIME YOUR SYSTEM STARTS UP:
 ----------------------------------------------------------------------------------------------------
 ISSUES:
   Symptom: ~45-second delay on startup, Silero ONNX warning in logs
-  Fix:     pip install silero-vad.
+  Fix:     Run install.py — it installs silero-vad automatically.
+           Or manually: pip install silero-vad
 
   Symptom: "tesseract is not installed or not in PATH"
   Fix:     Complete Section 2 and restart your terminal.

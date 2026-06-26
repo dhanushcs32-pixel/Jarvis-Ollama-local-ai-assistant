@@ -8,7 +8,7 @@ Agent -- central coordinator with dual-model routing.
 
 File Guard Feature:
   Interceptors added to strictly read, write, clear, or overwrite ONE file only:
-  C:/Users/<User>/Desktop/To-Do.txt
+  ~/Desktop/To-Do.txt  (resolves to the user's Desktop on Windows, macOS, and Linux)
 """
 
 import json
@@ -152,7 +152,7 @@ class Agent:
         self.dispatcher = ActionDispatcher(cfg)
 
     def _get_secure_todo_path(self) -> str:
-        """Enforces a hardcoded file point strictly pointing onto the active user Desktop context."""
+        """Returns ~/Desktop/To-Do.txt — works on Windows, macOS, and Linux."""
         return os.path.join(os.path.expanduser("~"), "Desktop", "To-Do.txt")
 
     def _extract_amount(self, query: str, default: int) -> int:

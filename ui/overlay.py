@@ -106,7 +106,7 @@ class DrawingOverlay(QWidget):
         self._instr_title = QLabel("Instructions")
         self._instr_title.setStyleSheet(
             "color: rgba(255,255,255,200); font-size: 14px; font-weight: 700;"
-            "font-family: 'Segoe UI', sans-serif; background: transparent;"
+            "font-family: 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif; background: transparent;"
         )
         self._instr_layout.addWidget(self._instr_title)
         self._step_labels: list[QLabel] = []
@@ -141,7 +141,7 @@ class DrawingOverlay(QWidget):
                 lbl.setWordWrap(True)
                 lbl.setStyleSheet(
                     "color: rgba(255,255,255,200); font-size: 13px;"
-                    "font-family: 'Segoe UI', sans-serif;"
+                    "font-family: 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif;"
                     "background: transparent; padding: 6px 0px;"
                 )
                 self._instr_layout.insertWidget(
@@ -392,7 +392,13 @@ class DrawingOverlay(QWidget):
     ) -> None:
         if not text:
             return
-        font = QFont("Segoe UI", 11 if not large else 14)
+        import sys as _sys
+        _ui_font = (
+            "SF Pro Text" if _sys.platform == "darwin"
+            else "Segoe UI" if _sys.platform == "win32"
+            else "DejaVu Sans"
+        )
+        font = QFont(_ui_font, 11 if not large else 14)
         font.setBold(True)
         painter.setFont(font)
         fm = painter.fontMetrics()

@@ -147,7 +147,7 @@ class LogPanel(QWidget):
         title = QLabel("● Vision Assistant")
         title.setStyleSheet(
             "color: rgba(255,255,255,200); font-size: 12px;"
-            "font-family: 'SF Pro Text', 'Segoe UI', sans-serif;"
+            "font-family: 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif;"
             "font-weight: 600; letter-spacing: 0.5px; background: transparent;"
         )
         hl.addWidget(title)
@@ -247,7 +247,7 @@ class LogPanel(QWidget):
         label.setStyleSheet(f"""
             color: {color};
             font-size: 13px;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif;
             background: transparent;
             padding: 3px 2px;
         """)

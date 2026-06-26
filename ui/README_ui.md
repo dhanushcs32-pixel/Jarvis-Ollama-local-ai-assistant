@@ -7,6 +7,9 @@ pip install PyQt6 psutil
 pip install GPUtil          # optional — enables GPU% in stats bar
 ```
 
+> **Linux note:** if the stats bar GPU% shows `–%`, install `GPUtil` and ensure
+> your GPU driver exposes utilisation via NVML (NVIDIA) or equivalent.
+
 ## Directory layout
 
 ```
@@ -26,7 +29,11 @@ vision_assistant/
 ## Run
 
 ```bash
+# Windows
 py -3.11 app.py
+
+# macOS / Linux
+python3 app.py
 ```
 
 ## Widget reference

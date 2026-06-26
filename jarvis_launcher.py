@@ -379,7 +379,11 @@ class ArcReactorWidget(QWidget):
 
     def _draw_labels(self, p: QPainter):
         """SIGNAL top, ENERGY LEVEL bottom, WIFI left — faint gold text."""
-        font = QFont("Consolas", 5, QFont.Weight.Bold)
+        import sys as _sys
+        _mono = ("Menlo" if _sys.platform == "darwin"
+                 else "Consolas" if _sys.platform == "win32"
+                 else "DejaVu Sans Mono")
+        font = QFont(_mono, 5, QFont.Weight.Bold)
         p.setFont(font)
         alpha = int(140 + 60 * self._pulse)
         pen = QPen(QColor(255, 185, 0, alpha))

@@ -85,7 +85,7 @@ class TextInputBar(QWidget):
                 background: transparent;
                 border: none;
                 color: rgba(255, 255, 255, 255);
-                font-family: 'Segoe UI', sans-serif;
+                font-family: 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif;
                 font-size: 14px;
                 selection-background-color: rgba(60, 160, 255, 120);
             }
@@ -99,7 +99,7 @@ class TextInputBar(QWidget):
         hint = QLabel("Esc to close")
         hint.setStyleSheet(
             "color: rgba(255,255,255,100); font-size: 11px;"
-            "font-family: 'Segoe UI'; background: transparent;"
+            "font-family: 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif; background: transparent;"
         )
         layout.addWidget(hint)
 
