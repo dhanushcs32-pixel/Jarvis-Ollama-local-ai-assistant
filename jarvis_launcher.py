@@ -129,8 +129,10 @@ class ArcReactorWidget(QWidget):
     # ── Morph: fly to cursor then launch ─────────────────────────────────
 
     def _begin_morph_forward(self):
-        """Called on click. Shrink + fly to cursor, then spawn Jarvis."""
-        self._corner_pos   = self.pos()          # remember where to return to
+        """Called on click or context menu. Shrink + fly to cursor, then spawn Jarvis."""
+        if self._morphing or self._jarvis_running:
+            return                               # guard against double-trigger
+        self._corner_pos   = self.pos()          # always capture before hiding
         self._morph_start  = self.pos()
         self._morph_t      = 0.0
         self._morph_reverse = False
@@ -138,6 +140,14 @@ class ArcReactorWidget(QWidget):
 
     def _begin_morph_reverse(self):
         """Called when Jarvis stops. Appear at cursor, grow + fly back to corner."""
+        # Safety: if _corner_pos was never set, fall back to default bottom-right position.
+        if self._corner_pos is None:
+            screen = QApplication.primaryScreen().availableGeometry()
+            self._corner_pos = QPoint(
+                screen.right()  - WIDGET_SIZE - 24,
+                screen.bottom() - WIDGET_SIZE - 24,
+            )
+
         cursor = QCursor.pos()
         # Place widget centred on cursor at eye size
         self.setFixedSize(EYE_SIZE, EYE_SIZE)
