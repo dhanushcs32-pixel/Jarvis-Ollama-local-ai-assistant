@@ -10,14 +10,29 @@ No cloud. Everything runs on your machine via Ollama.
 
 ## Setup
 
+See **SETUP.txt** for full instructions — model recommendations by hardware, manual install steps, and troubleshooting.
+
+**Quick start:**
+
 ```bash
-pip install -r requirements.txt
+python3.11 install.py
+python3.11 launch.py
 ```
 
-## Run
+> Windows: use `py -3.11` instead of `python3.11`
+
+## Widget Launcher (optional)
 
 ```bash
-python launch.py
+python3.11 jarvis_launcher.py
+```
+
+Click the arc reactor HUD to start Jarvis.
+
+## Auto-start on boot (Windows only)
+
+```bash
+py -3.11 add_to_startup.py
 ```
 
 ## Hotkeys
@@ -28,4 +43,4 @@ python launch.py
 | F9 | Screen analyze |
 | F10 | Text input |
 
-Wake word: **Jarvis**
+Wake word: **Jarvis** / **Jarv**
